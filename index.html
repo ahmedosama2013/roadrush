@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>RoadRush</title>
+    <meta name="description" content="RoadRush is an endless 3D driving game. Weave through traffic, chase the horizon, and beat your own distance record." />
+    <meta name="theme-color" content="#0b0e13" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" href="icon.png" type="image/png" />
+    <link rel="apple-touch-icon" href="icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://unpkg.com" crossorigin />
+    <link rel="modulepreload" href="https://unpkg.com/three@0.169.0/build/three.module.js" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Space+Grotesk:wght@700&family=JetBrains+Mono:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.169.0/build/three.module.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <canvas id="stage"></canvas>
+
+    <div id="vignette" aria-hidden="true"></div>
+
+    <header id="hud" class="hud" data-state="hidden">
+      <div class="hud-cluster">
+        <div class="readout">
+          <span class="readout-label">Distance</span>
+          <span class="readout-value"><b id="hud-distance">0</b><i>m</i></span>
+        </div>
+        <div class="readout">
+          <span class="readout-label">Score</span>
+          <span class="readout-value" id="hud-score">0</span>
+        </div>
+        <div class="readout readout-muted">
+          <span class="readout-label">Best</span>
+          <span class="readout-value" id="hud-best">0</span>
+        </div>
+      </div>
+
+      <div class="hud-cluster hud-right">
+        <div class="speedo">
+          <div class="speedo-track"><span id="speedo-fill"></span></div>
+          <div class="speedo-digits">
+            <b id="hud-speed">0</b>
+            <span>km/h</span>
+          </div>
+        </div>
+        <button class="icon-btn" id="btn-pause" type="button" aria-label="Pause">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="5" width="3.4" height="14" rx="1.2" /><rect x="13.6" y="5" width="3.4" height="14" rx="1.2" /></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="touch-controls" id="touch-controls" data-state="hidden" aria-hidden="true">
+      <button class="pad pad-left" id="pad-left" type="button" aria-label="Steer left"></button>
+      <button class="pad pad-right" id="pad-right" type="button" aria-label="Steer right"></button>
+      <button class="pad pad-brake" id="pad-brake" type="button" aria-label="Brake"></button>
+      <button class="pad pad-gas" id="pad-gas" type="button" aria-label="Accelerate"></button>
+    </div>
+
+    <main class="screen" id="screen-start" data-state="visible">
+      <div class="panel panel-start">
+        <div class="brand">
+          <img src="icon.png" alt="" width="40" height="40" />
+          <span>RoadRush</span>
+        </div>
+        <h1>Chase the horizon<br></h1>
+        <p class="lede">
+          An endless drive in a car at night
+        </p>
+        <button class="btn btn-primary" id="btn-play" type="button" data-ready="false">
+          <span id="btn-play-label">Warming up the engine</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h12.5l-4.6-4.6 1.4-1.4L21 12l-6.7 6-1.4-1.4 4.6-4.6H5z" /></svg>
+        </button>
+        <dl class="keys">
+          <div><dt>W</dt><dd>Accelerate</dd></div>
+          <div><dt>A</dt><dd>Steer left</dd></div>
+          <div><dt>S</dt><dd>Brake</dd></div>
+          <div><dt>D</dt><dd>Steer right</dd></div>
+        </dl>
+        <footer class="panel-foot">
+          <span>Best score <b id="start-best">0</b></span>
+          <button class="btn btn-ghost btn-small" id="btn-credits" type="button"><span>Credits</span></button>
+        </footer>
+      </div>
+    </main>
+
+    <div class="screen screen-dim" id="screen-pause" data-state="hidden">
+      <div class="panel panel-compact">
+        <span class="eyebrow">Paused</span>
+        <h2>Engine idling</h2>
+        <p class="lede">The road is still there. So is the traffic.</p>
+        <div class="panel-actions">
+          <button class="btn btn-primary" id="btn-resume" type="button"><span>Resume</span></button>
+          <button class="btn btn-ghost" id="btn-quit" type="button"><span>End run</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen screen-dim" id="screen-over" data-state="hidden">
+      <div class="panel panel-compact">
+        <span class="eyebrow" id="over-eyebrow">Run ended</span>
+        <h2 id="over-title">You crashed.</h2>
+        <div class="stats">
+          <div><span>Distance</span><b id="over-distance">0 m</b></div>
+          <div><span>Score</span><b id="over-score">0</b></div>
+          <div><span>Top speed</span><b id="over-speed">0 km/h</b></div>
+        </div>
+        <div class="panel-actions">
+          <button class="btn btn-primary" id="btn-retry" type="button"><span>Drive again</span></button>
+          <button class="btn btn-ghost" id="btn-menu" type="button"><span>Main menu</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen screen-dim" id="screen-credits" data-state="hidden">
+      <div class="panel panel-compact panel-credits">
+        <span class="eyebrow">Credits</span>
+        <h2>RoadRush</h2>
+        <p class="credit-line">Made By : ahmedosama2013b@gmail.com</p>
+        <div class="panel-actions">
+          <a
+            class="btn btn-ghost btn-github"
+            id="btn-github"
+            href="https://github.com/ahmedosama2013/roadrush"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" /></svg>
+            <span>View On Github</span>
+          </a>
+          <button class="btn btn-primary" id="btn-credits-close" type="button"><span>Back</span></button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      window.roadrush = { autostart: false };
+      document.getElementById("btn-play").addEventListener("click", function () {
+        if (this.dataset.ready === "false") {
+          window.roadrush.autostart = true;
+          document.getElementById("btn-play-label").textContent = "Starting the moment the road is ready";
+        }
+      });
+    </script>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "name": "RoadRush",
+  "short_name": "RoadRush",
+  "description": "An endless 3D night drive. Weave through traffic and beat your own distance record.",
+  "start_url": "index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#0b0e13",
+  "theme_color": "#0b0e13",
+  "categories": ["games"],
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
