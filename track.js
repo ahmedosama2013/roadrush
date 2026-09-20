@@ -31,6 +31,7 @@ function createRoadSurface() {
     new THREE.PlaneGeometry(ROAD_HALF_WIDTH * 2, 1600),
     new THREE.MeshStandardMaterial({ color: "#191c22", roughness: 0.78, metalness: 0.08 })
   );
+  asphalt.name = "asphalt";
   asphalt.rotation.x = -Math.PI / 2;
   asphalt.position.z = -700;
   asphalt.receiveShadow = true;
@@ -39,6 +40,7 @@ function createRoadSurface() {
   const shoulderMaterial = new THREE.MeshStandardMaterial({ color: "#23262e", roughness: 0.95 });
   [-1, 1].forEach((side) => {
     const shoulder = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 1600), shoulderMaterial);
+    shoulder.name = "road-shoulder";
     shoulder.rotation.x = -Math.PI / 2;
     shoulder.position.set(side * (ROAD_HALF_WIDTH + 1.3), -0.01, -700);
     group.add(shoulder);
@@ -52,6 +54,7 @@ function createRoadSurface() {
   });
   [-1, 1].forEach((side) => {
     const edge = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 1600), edgeMaterial);
+    edge.name = "road-edge";
     edge.rotation.x = -Math.PI / 2;
     edge.position.set(side * (ROAD_HALF_WIDTH - 0.32), 0.012, -700);
     group.add(edge);
@@ -71,6 +74,7 @@ function createDashField() {
   const boundaries = [-LANE_WIDTH, 0, LANE_WIDTH];
   const total = boundaries.length * DASH_COUNT_PER_LINE;
   const mesh = new THREE.InstancedMesh(geometry, material, total);
+  mesh.name = "lane-dash";
   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   mesh.frustumCulled = false;
 
@@ -138,6 +142,7 @@ function createLamp(side) {
     new THREE.CircleGeometry(5.2, 20),
     new THREE.MeshBasicMaterial({ color: "#ffb055", transparent: true, opacity: 0.07, depthWrite: false })
   );
+  pool.name = "lamp-pool";
   pool.rotation.x = -Math.PI / 2;
   pool.position.set(side * -3.6, 0.02, 0);
   group.add(pool);
