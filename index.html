@@ -90,7 +90,10 @@
         </dl>
         <footer class="panel-foot">
           <span>Best score <b id="start-best">0</b></span>
-          <button class="btn btn-ghost btn-small" id="btn-credits" type="button"><span>Credits</span></button>
+          <div class="panel-foot-actions">
+            <button class="btn btn-ghost btn-small" id="btn-settings" type="button"><span>Settings</span></button>
+            <button class="btn btn-ghost btn-small" id="btn-credits" type="button"><span>Credits</span></button>
+          </div>
         </footer>
       </div>
     </main>
@@ -140,6 +143,23 @@
             <span>View On Github</span>
           </a>
           <button class="btn btn-primary" id="btn-credits-close" type="button"><span>Back</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen screen-dim" id="screen-settings" data-state="hidden">
+      <div class="panel panel-compact panel-settings">
+        <span class="eyebrow">Settings</span>
+        <h2>Graphics</h2>
+        <span class="setting-label" id="graphics-label">Quality</span>
+        <div class="segmented" id="graphics-options" role="radiogroup" aria-labelledby="graphics-label">
+          <button type="button" role="radio" aria-checked="false" data-quality="low">Low</button>
+          <button type="button" role="radio" aria-checked="false" data-quality="medium">Medium</button>
+          <button type="button" role="radio" aria-checked="false" data-quality="high">High</button>
+        </div>
+        <p class="setting-hint" id="graphics-hint"></p>
+        <div class="panel-actions">
+          <button class="btn btn-primary" id="btn-settings-close" type="button"><span>Back</span></button>
         </div>
       </div>
     </div>
