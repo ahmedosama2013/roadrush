@@ -66,6 +66,7 @@ function createTerrain() {
     new THREE.PlaneGeometry(1400, 2400),
     new THREE.MeshStandardMaterial({ color: "#0d1119", roughness: 1, metalness: 0 })
   );
+  ground.name = "ground";
   ground.rotation.x = -Math.PI / 2;
   ground.position.set(0, -0.12, -900);
   ground.receiveShadow = true;
@@ -83,6 +84,7 @@ function createTerrain() {
     const peak = new THREE.Mesh(new THREE.ConeGeometry(52 + Math.random() * 60, height, 5), ridgeMaterial);
     const side = i % 2 === 0 ? -1 : 1;
     peak.position.set(side * (150 + Math.random() * 320), height / 2 - 6, -420 - Math.random() * 900);
+    peak.name = "ridge";
     peak.rotation.y = Math.random() * Math.PI;
     group.add(peak);
   }
