@@ -14,6 +14,19 @@ const POST_COUNT_PER_SIDE = 22;
 const LAMP_SPACING = 62;
 const LAMP_COUNT_PER_SIDE = 7;
 const TRAFFIC_POOL = 16;
+const LANE_CHANGE_SHARE = 0.4;
+const LANE_CHANGE_SPEED = 3.4;
+const LANE_CHANGE_MIN_DELAY = 1.2;
+const LANE_CHANGE_MAX_DELAY = 3.4;
+const LANE_CHANGE_CLEARANCE = 16;
+const LANE_CHANGE_MIN_TIME_TO_PLAYER = 2.8;
+const SPAWN_CLEARANCE = 46;
+const TRAFFIC_LATERAL_CLEARANCE = 2.3;
+const FOLLOW_MIN_GAP = 7;
+const FOLLOW_MARGIN = 8;
+const TRAFFIC_ACCEL = 8;
+const TRAFFIC_BRAKE = 30;
+const FOLLOW_COMFORT_BRAKE = 24;
 
 const TRAFFIC_PAINTS = [
   { body: "#2f6df6", trim: "#16203a", lamp: "#ff4b52" },
@@ -161,8 +174,12 @@ function createTrafficCar() {
     paint: built.paint,
     lane: 0,
     speed: 0,
+    cruise: 0,
     active: false,
-    counted: false
+    counted: false,
+    changesLanes: false,
+    changeTimer: 0,
+    lateralSpeed: 0
   };
 }
 
@@ -219,8 +236,118 @@ export function createTrack(scene) {
     writeInstances(field, flat);
   }
 
-  function laneIsFree(lane, z, gap) {
-    return !traffic.some((car) => car.active && car.lane === lane && Math.abs(car.group.position.z - z) < gap);
+  function sharesCorridor(a, b) {
+    const ax = a.group.position.x;
+    const bx = b.group.position.x;
+    const aTarget = LANE_CENTERS[a.lane];
+    const bTarget = LANE_CENTERS[b.lane];
+    return (
+      Math.abs(ax - bx) < TRAFFIC_LATERAL_CLEARANCE ||
+      Math.abs(ax - bTarget) < TRAFFIC_LATERAL_CLEARANCE ||
+      Math.abs(aTarget - bx) < TRAFFIC_LATERAL_CLEARANCE ||
+      Math.abs(aTarget - bTarget) < TRAFFIC_LATERAL_CLEARANCE
+    );
+  }
+
+  function laneHasRoom(lane, z, speed, baseClearance) {
+    return !traffic.some((car) => {
+      if (!car.active) {
+        return false;
+      }
+      const occupies =
+        car.lane === lane ||
+        Math.abs(car.group.position.x - LANE_CENTERS[lane]) < TRAFFIC_LATERAL_CLEARANCE;
+      if (!occupies) {
+        return false;
+      }
+      const offset = car.group.position.z - z;
+      const closingSpeed = offset < 0 ? speed - car.speed : car.speed - speed;
+      const closing = Math.max(0, closingSpeed);
+      const needed = Math.max(
+        baseClearance,
+        FOLLOW_MIN_GAP + (closing * closing) / (2 * FOLLOW_COMFORT_BRAKE) + FOLLOW_MARGIN
+      );
+      return Math.abs(offset) < needed;
+    });
+  }
+
+  function findLeader(car) {
+    let leader = null;
+    let leaderDistance = Infinity;
+    traffic.forEach((other) => {
+      if (other === car || !other.active) {
+        return;
+      }
+      if (!sharesCorridor(car, other)) {
+        return;
+      }
+      const distance = car.group.position.z - other.group.position.z;
+      if (distance > 0 && distance < leaderDistance) {
+        leader = other;
+        leaderDistance = distance;
+      }
+    });
+    return leader ? { car: leader, distance: leaderDistance } : null;
+  }
+
+  function updateTrafficSpeed(car, dt) {
+    let target = car.cruise;
+    const leader = findLeader(car);
+    if (leader) {
+      const room = leader.distance - FOLLOW_MIN_GAP;
+      const follow =
+        room > 0
+          ? leader.car.speed + Math.sqrt(2 * FOLLOW_COMFORT_BRAKE * room)
+          : leader.car.speed + room * 2;
+      target = Math.max(0, Math.min(target, follow));
+    }
+    const change = THREE.MathUtils.clamp(target - car.speed, -TRAFFIC_BRAKE * dt, TRAFFIC_ACCEL * dt);
+    car.speed += change;
+  }
+
+  function randomDelay() {
+    return LANE_CHANGE_MIN_DELAY + Math.random() * (LANE_CHANGE_MAX_DELAY - LANE_CHANGE_MIN_DELAY);
+  }
+
+  function isChangingLane(car) {
+    return Math.abs(car.group.position.x - LANE_CENTERS[car.lane]) > 0.05;
+  }
+
+  function pickNewLane(car) {
+    const options = [car.lane - 1, car.lane + 1].filter(
+      (lane) =>
+        lane >= 0 &&
+        lane < LANE_CENTERS.length &&
+        laneHasRoom(lane, car.group.position.z, car.speed, LANE_CHANGE_CLEARANCE)
+    );
+    return options.length ? options[Math.floor(Math.random() * options.length)] : -1;
+  }
+
+  function updateLaneChange(car, dt, closing) {
+    if (!isChangingLane(car)) {
+      car.changeTimer -= dt;
+      const timeToPlayer = closing > 0 ? -car.group.position.z / closing : Infinity;
+      if (car.changeTimer <= 0 && timeToPlayer > LANE_CHANGE_MIN_TIME_TO_PLAYER) {
+        const lane = pickNewLane(car);
+        car.changeTimer = randomDelay();
+        if (lane >= 0) {
+          car.lane = lane;
+        }
+      }
+    }
+
+    const targetX = LANE_CENTERS[car.lane];
+    const gap = targetX - car.group.position.x;
+    const desired = THREE.MathUtils.clamp(gap * 2, -LANE_CHANGE_SPEED, LANE_CHANGE_SPEED);
+    car.lateralSpeed += (desired - car.lateralSpeed) * Math.min(1, 9 * dt);
+    car.group.position.x += car.lateralSpeed * dt;
+    car.group.rotation.y = -car.lateralSpeed * 0.03;
+
+    if (Math.abs(gap) < 0.04 && Math.abs(car.lateralSpeed) < 0.15) {
+      car.group.position.x = targetX;
+      car.lateralSpeed = 0;
+      car.group.rotation.y = 0;
+    }
   }
 
   function spawn(difficulty, cruise) {
@@ -229,8 +356,10 @@ export function createTrack(scene) {
       return;
     }
 
+    const speed = Math.min(cruise - 10, 26 + Math.random() * 22 + difficulty * 6);
+    const spawnZ = SPAWN_Z - Math.random() * 60;
     const openLanes = LANE_CENTERS.map((value, index) => index).filter((lane) =>
-      laneIsFree(lane, SPAWN_Z, 46)
+      laneHasRoom(lane, spawnZ, speed, SPAWN_CLEARANCE)
     );
     if (openLanes.length <= 1) {
       return;
@@ -238,11 +367,15 @@ export function createTrack(scene) {
 
     const lane = openLanes[Math.floor(Math.random() * openLanes.length)];
     idle.lane = lane;
-    idle.speed = Math.min(cruise - 10, 26 + Math.random() * 22 + difficulty * 6);
+    idle.speed = speed;
+    idle.cruise = speed;
     idle.active = true;
     idle.counted = false;
+    idle.changesLanes = Math.random() < LANE_CHANGE_SHARE;
+    idle.changeTimer = randomDelay();
+    idle.lateralSpeed = 0;
     idle.group.visible = true;
-    idle.group.position.set(LANE_CENTERS[lane], 0, SPAWN_Z - Math.random() * 60);
+    idle.group.position.set(LANE_CENTERS[lane], 0, spawnZ);
     idle.group.rotation.set(0, 0, 0);
   }
 
@@ -277,8 +410,12 @@ export function createTrack(scene) {
       if (!car.active) {
         return;
       }
+      updateTrafficSpeed(car, dt);
       const closing = playerSpeed - car.speed;
       car.group.position.z += closing * dt;
+      if (car.changesLanes) {
+        updateLaneChange(car, dt, closing);
+      }
       const spin = car.speed * dt * 2.4;
       car.wheels.forEach((item) => {
         item.rotation.x -= spin;
