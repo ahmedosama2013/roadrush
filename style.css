@@ -435,6 +435,61 @@ h2 {
   font-size: 13px;
 }
 
+.panel-foot-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.setting-label {
+  display: block;
+  margin: 22px 0 10px;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--ink-soft);
+}
+
+.segmented button {
+  height: 44px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-dim);
+  transition: color 160ms ease, background 160ms ease, box-shadow 200ms ease;
+}
+
+.segmented button:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.segmented button[aria-checked="true"] {
+  color: #22160a;
+  background: linear-gradient(180deg, #ffc257, var(--amber-deep));
+  box-shadow: 0 10px 24px -14px rgba(255, 150, 40, 0.9);
+}
+
+.setting-hint {
+  min-height: 3.2em;
+  max-width: 46ch;
+  margin: 14px auto 0;
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
 .stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -556,6 +611,21 @@ h2 {
   .panel,
   .btn,
   .hud {
+    transition: none;
+  }
+}
+
+html[data-graphics="low"] #vignette {
+  display: none;
+}
+
+html[data-graphics="low"] .icon-btn,
+html[data-graphics="low"] .pad {
+  backdrop-filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .segmented button {
     transition: none;
   }
 }
