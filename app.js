@@ -3,6 +3,7 @@ import { createWorld, shakeCamera } from "./scene.js";
 import { createPlayerCar, resetPlayerCar, updatePlayerCar, CAR_HALF_LENGTH, CAR_HALF_WIDTH } from "./car.js";
 import { createTrack, ROAD_HALF_WIDTH } from "./track.js";
 import { createInput } from "./input.js";
+import { createGraphics } from "./graphics.js";
 
 const STORAGE_KEY = "roadrush.best";
 const SPEED_TO_KMH = 2.6;
@@ -18,11 +19,14 @@ const dom = {
   speedFill: document.getElementById("speedo-fill"),
   touch: document.getElementById("touch-controls"),
   startBest: document.getElementById("start-best"),
+  graphicsOptions: Array.from(document.querySelectorAll("#graphics-options [data-quality]")),
+  graphicsHint: document.getElementById("graphics-hint"),
   screens: {
     start: document.getElementById("screen-start"),
     pause: document.getElementById("screen-pause"),
     over: document.getElementById("screen-over"),
-    credits: document.getElementById("screen-credits")
+    credits: document.getElementById("screen-credits"),
+    settings: document.getElementById("screen-settings")
   },
   over: {
     eyebrow: document.getElementById("over-eyebrow"),
@@ -36,6 +40,7 @@ const dom = {
 const world = createWorld(document.getElementById("stage"));
 const player = createPlayerCar(world.scene);
 const track = createTrack(world.scene);
+const graphics = createGraphics({ world });
 
 const run = {
   mode: "menu",
@@ -75,6 +80,9 @@ const input = createInput({
     }
   },
   confirm: () => {
+    if (dom.screens.settings.dataset.state === "visible") {
+      return;
+    }
     if (run.mode === "menu" || run.mode === "over") {
       startRun();
     } else if (run.mode === "paused") {
@@ -87,6 +95,13 @@ function showScreen(name) {
   Object.entries(dom.screens).forEach(([key, element]) => {
     element.dataset.state = key === name ? "visible" : "hidden";
   });
+}
+
+function syncGraphicsUi() {
+  dom.graphicsOptions.forEach((button) => {
+    button.setAttribute("aria-checked", button.dataset.quality === graphics.level ? "true" : "false");
+  });
+  dom.graphicsHint.textContent = graphics.describe();
 }
 
 function setHudVisible(visible) {
@@ -220,6 +235,7 @@ function step(dt) {
   run.topSpeed = Math.max(run.topSpeed, player.speed);
 
   track.update(dt, player.speed);
+  graphics.scroll(travelled);
 
   run.spawnTimer -= dt * Math.min(1, player.speed / BASE_TOP_SPEED);
   if (run.spawnTimer <= 0) {
@@ -247,6 +263,7 @@ function frame(now) {
     }
   } else if (run.mode === "menu") {
     track.update(dt, 22);
+    graphics.scroll(22 * dt);
     player.group.rotation.y = Math.sin(now * 0.0004) * 0.06;
     world.camera.position.x += (Math.sin(now * 0.0002) * 1.6 - world.camera.position.x) * Math.min(1, dt);
     world.camera.lookAt(0, 1.5, -22);
@@ -264,6 +281,14 @@ document.getElementById("btn-resume").addEventListener("click", resume);
 document.getElementById("btn-quit").addEventListener("click", () => endRun(false));
 document.getElementById("btn-credits").addEventListener("click", () => showScreen("credits"));
 document.getElementById("btn-credits-close").addEventListener("click", () => showScreen("start"));
+document.getElementById("btn-settings").addEventListener("click", () => showScreen("settings"));
+document.getElementById("btn-settings-close").addEventListener("click", () => showScreen("start"));
+dom.graphicsOptions.forEach((button) => {
+  button.addEventListener("click", () => {
+    graphics.setQuality(button.dataset.quality);
+    syncGraphicsUi();
+  });
+});
 
 document.addEventListener("visibilitychange", () => {
   if (document.hidden && run.mode === "driving") {
@@ -291,6 +316,7 @@ function markReady() {
 
 dom.startBest.textContent = formatNumber(best);
 dom.best.textContent = formatNumber(best);
+syncGraphicsUi();
 showScreen("start");
 setHudVisible(false);
 window.requestAnimationFrame(frame);
