@@ -9,7 +9,6 @@
 * **Rising Difficulty:** The further you drive, the faster the traffic gets and the higher your top speed climbs.
 * **Live Stats:** Keep an eye on your distance, score, best score, and a speedometer in km/h while you drive.
 * **Touch Controls:** On-screen buttons for steering, accelerating, and braking on phones and tablets.
-* **Privacy First:** Your best score is saved directly in your browser or device storage.
 * **Web App:** Can also be downloaded as a web app.
 
 ---
