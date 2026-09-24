@@ -92,7 +92,8 @@ function createTerrain() {
   return group;
 }
 
-export function createWorld(canvas) {
+export function createWorld(canvas, options = {}) {
+  const sizeMode = options.sizeMode || "window";
   const renderer = new THREE.WebGLRenderer({
     canvas,
     antialias: window.devicePixelRatio < 2,
@@ -137,8 +138,8 @@ export function createWorld(canvas) {
   scene.add(createTerrain());
 
   function resize() {
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+    const width = sizeMode === "element" ? canvas.clientWidth || window.innerWidth : window.innerWidth;
+    const height = sizeMode === "element" ? canvas.clientHeight || window.innerHeight : window.innerHeight;
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
