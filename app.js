@@ -4,11 +4,13 @@ import { createPlayerCar, resetPlayerCar, updatePlayerCar, CAR_HALF_LENGTH, CAR_
 import { createTrack, ROAD_HALF_WIDTH } from "./track.js";
 import { createInput } from "./input.js";
 import { createGraphics } from "./graphics.js";
+import { createMultiplayer } from "./multiplayer.js";
 
 const STORAGE_KEY = "roadrush.best";
 const SPEED_TO_KMH = 2.6;
 const BASE_TOP_SPEED = 52;
 const MAX_TOP_SPEED = 104;
+const MULTIPLAYER_MIN_WIDTH = 768;
 
 const dom = {
   hud: document.getElementById("hud"),
@@ -26,7 +28,8 @@ const dom = {
     pause: document.getElementById("screen-pause"),
     over: document.getElementById("screen-over"),
     credits: document.getElementById("screen-credits"),
-    settings: document.getElementById("screen-settings")
+    settings: document.getElementById("screen-settings"),
+    twoPlayerOver: document.getElementById("screen-2p-over")
   },
   over: {
     eyebrow: document.getElementById("over-eyebrow"),
@@ -34,6 +37,30 @@ const dom = {
     distance: document.getElementById("over-distance"),
     score: document.getElementById("over-score"),
     speed: document.getElementById("over-speed")
+  }
+};
+
+const multiplayerDom = {
+  container: document.getElementById("stage-multiplayer"),
+  canvasP1: document.getElementById("stage-p1"),
+  canvasP2: document.getElementById("stage-p2"),
+  hudP1: {
+    score: document.getElementById("mp-p1-score"),
+    speed: document.getElementById("mp-p1-speed")
+  },
+  hudP2: {
+    score: document.getElementById("mp-p2-score"),
+    speed: document.getElementById("mp-p2-speed")
+  },
+  quit: document.getElementById("btn-mp-quit"),
+  playButton: document.getElementById("btn-play-2p"),
+  retryButton: document.getElementById("btn-mp-retry"),
+  menuButton: document.getElementById("btn-mp-menu"),
+  over: {
+    eyebrow: document.getElementById("mp-over-eyebrow"),
+    title: document.getElementById("mp-over-title"),
+    p1Score: document.getElementById("mp-over-p1-score"),
+    p2Score: document.getElementById("mp-over-p2-score")
   }
 };
 
@@ -53,6 +80,8 @@ const run = {
 };
 
 let best = readBest();
+let multiplayerActive = false;
+let multiplayerSession = null;
 
 function readBest() {
   const stored = Number(window.localStorage.getItem(STORAGE_KEY));
@@ -71,8 +100,23 @@ function formatNumber(value) {
   return Math.round(value).toLocaleString("en-US");
 }
 
+function isMultiplayerAvailable() {
+  return window.innerWidth >= MULTIPLAYER_MIN_WIDTH;
+}
+
+function updateMultiplayerAvailability() {
+  multiplayerDom.playButton.dataset.available = isMultiplayerAvailable() ? "true" : "false";
+}
+
+function isMultiplayerScreenActive() {
+  return multiplayerActive || dom.screens.twoPlayerOver.dataset.state === "visible";
+}
+
 const input = createInput({
   togglePause: () => {
+    if (isMultiplayerScreenActive()) {
+      return;
+    }
     if (run.mode === "driving") {
       pause();
     } else if (run.mode === "paused") {
@@ -80,6 +124,9 @@ const input = createInput({
     }
   },
   confirm: () => {
+    if (isMultiplayerScreenActive()) {
+      return;
+    }
     if (dom.screens.settings.dataset.state === "visible") {
       return;
     }
@@ -253,6 +300,11 @@ function frame(now) {
   const dt = Math.min(0.048, (now - previous) / 1000);
   previous = now;
 
+  if (multiplayerActive) {
+    window.requestAnimationFrame(frame);
+    return;
+  }
+
   if (run.mode === "driving") {
     step(dt);
     updateCamera(dt);
@@ -273,6 +325,50 @@ function frame(now) {
   window.requestAnimationFrame(frame);
 }
 
+function ensureMultiplayerSession() {
+  if (!multiplayerSession) {
+    multiplayerSession = createMultiplayer(multiplayerDom, handleMultiplayerFinish);
+  }
+  return multiplayerSession;
+}
+
+function startMultiplayer() {
+  if (!isMultiplayerAvailable()) {
+    return;
+  }
+  multiplayerActive = true;
+  showScreen("none");
+  setHudVisible(false);
+  document.body.classList.add("is-driving");
+  multiplayerDom.container.dataset.state = "visible";
+  ensureMultiplayerSession().start();
+}
+
+function handleMultiplayerFinish(result) {
+  multiplayerActive = false;
+  multiplayerDom.container.dataset.state = "hidden";
+  document.body.classList.remove("is-driving");
+  multiplayerDom.over.eyebrow.textContent = `${result.winner} wins`;
+  multiplayerDom.over.title.textContent = "Crash!";
+  multiplayerDom.over.p1Score.textContent = formatNumber(result.p1Score);
+  multiplayerDom.over.p2Score.textContent = formatNumber(result.p2Score);
+  showScreen("twoPlayerOver");
+}
+
+function quitMultiplayer() {
+  if (!multiplayerActive) {
+    return;
+  }
+  if (multiplayerSession) {
+    multiplayerSession.stop();
+  }
+  multiplayerActive = false;
+  multiplayerDom.container.dataset.state = "hidden";
+  document.body.classList.remove("is-driving");
+  showScreen("start");
+  dom.startBest.textContent = formatNumber(best);
+}
+
 document.getElementById("btn-play").addEventListener("click", startRun);
 document.getElementById("btn-retry").addEventListener("click", startRun);
 document.getElementById("btn-menu").addEventListener("click", returnToMenu);
@@ -290,11 +386,33 @@ dom.graphicsOptions.forEach((button) => {
   });
 });
 
+multiplayerDom.playButton.addEventListener("click", startMultiplayer);
+multiplayerDom.retryButton.addEventListener("click", startMultiplayer);
+multiplayerDom.menuButton.addEventListener("click", () => {
+  multiplayerDom.container.dataset.state = "hidden";
+  document.body.classList.remove("is-driving");
+  showScreen("start");
+  dom.startBest.textContent = formatNumber(best);
+});
+multiplayerDom.quit.addEventListener("click", quitMultiplayer);
+
+document.addEventListener("keydown", (event) => {
+  if (multiplayerActive && event.code === "Escape") {
+    quitMultiplayer();
+  }
+});
+
 document.addEventListener("visibilitychange", () => {
   if (document.hidden && run.mode === "driving") {
     pause();
   }
+  if (document.hidden && multiplayerActive) {
+    quitMultiplayer();
+  }
 });
+
+window.addEventListener("resize", updateMultiplayerAvailability);
+updateMultiplayerAvailability();
 
 async function warmUp() {
   track.prime();
