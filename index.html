@@ -68,6 +68,50 @@
       <button class="pad pad-gas" id="pad-gas" type="button" aria-label="Accelerate"></button>
     </div>
 
+    <div class="stage-multiplayer" id="stage-multiplayer" data-state="hidden">
+      <canvas id="stage-p1"></canvas>
+      <canvas id="stage-p2"></canvas>
+      <div class="mp-divider" aria-hidden="true"></div>
+      <div class="mp-hud mp-hud-left">
+        <div class="readout">
+          <span class="readout-label">P1 · WASD</span>
+          <span class="readout-value" id="mp-p1-score">0</span>
+        </div>
+        <div class="readout">
+          <span class="readout-label">Speed</span>
+          <span class="readout-value" id="mp-p1-speed">0<i>km/h</i></span>
+        </div>
+      </div>
+      <div class="mp-hud mp-hud-right">
+        <div class="readout">
+          <span class="readout-label">P2 · Arrows</span>
+          <span class="readout-value" id="mp-p2-score">0</span>
+        </div>
+        <div class="readout">
+          <span class="readout-label">Speed</span>
+          <span class="readout-value" id="mp-p2-speed">0<i>km/h</i></span>
+        </div>
+      </div>
+      <button class="icon-btn mp-quit" id="btn-mp-quit" type="button" aria-label="Quit to menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.4 4.98 4.98 6.4 10.59 12l-5.61 5.6 1.42 1.42L12 13.41l5.6 5.61 1.42-1.42L13.41 12l5.61-5.6-1.42-1.42L12 10.59z" /></svg>
+      </button>
+    </div>
+
+    <div class="screen screen-dim" id="screen-2p-over" data-state="hidden">
+      <div class="panel panel-compact">
+        <span class="eyebrow" id="mp-over-eyebrow">Player 1 wins</span>
+        <h2 id="mp-over-title">Crash!</h2>
+        <div class="stats">
+          <div><span>Player 1</span><b id="mp-over-p1-score">0</b></div>
+          <div><span>Player 2</span><b id="mp-over-p2-score">0</b></div>
+        </div>
+        <div class="panel-actions">
+          <button class="btn btn-primary" id="btn-mp-retry" type="button"><span>Race again</span></button>
+          <button class="btn btn-ghost" id="btn-mp-menu" type="button"><span>Main menu</span></button>
+        </div>
+      </div>
+    </div>
+
     <main class="screen" id="screen-start" data-state="visible">
       <div class="panel panel-start">
         <div class="brand">
@@ -78,10 +122,15 @@
         <p class="lede">
           An endless drive in a car at night
         </p>
-        <button class="btn btn-primary" id="btn-play" type="button" data-ready="false">
-          <span id="btn-play-label">Warming up the engine</span>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h12.5l-4.6-4.6 1.4-1.4L21 12l-6.7 6-1.4-1.4 4.6-4.6H5z" /></svg>
-        </button>
+        <div class="panel-actions start-actions">
+          <button class="btn btn-primary" id="btn-play" type="button" data-ready="false">
+            <span id="btn-play-label">Warming up the engine</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h12.5l-4.6-4.6 1.4-1.4L21 12l-6.7 6-1.4-1.4 4.6-4.6H5z" /></svg>
+          </button>
+          <button class="btn btn-ghost" id="btn-play-2p" type="button" data-available="false">
+            <span>2 Player</span>
+          </button>
+        </div>
         <dl class="keys">
           <div><dt>W</dt><dd>Accelerate</dd></div>
           <div><dt>A</dt><dd>Steer left</dd></div>
