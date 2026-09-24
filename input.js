@@ -1,11 +1,28 @@
-const KEY_MAP = {
+const WASD_MAP = {
   KeyA: "left",
   KeyD: "right",
   KeyW: "accelerate",
   KeyS: "brake"
 };
 
-export function createInput(handlers) {
+const ARROW_MAP = {
+  ArrowLeft: "left",
+  ArrowRight: "right",
+  ArrowUp: "accelerate",
+  ArrowDown: "brake"
+};
+
+const LAYOUTS = {
+  wasd_arrows: [WASD_MAP, ARROW_MAP],
+  wasd: [WASD_MAP],
+  arrows: [ARROW_MAP]
+};
+
+export function createInput(handlers, options = {}) {
+  const maps = LAYOUTS[options.layout] || LAYOUTS.wasd_arrows;
+  const enableTouch = options.enableTouch !== false;
+  const enableGlobalKeys = options.enableGlobalKeys !== false;
+
   const keys = { left: false, right: false, accelerate: false, brake: false };
   const pads = { left: false, right: false, accelerate: false, brake: false };
 
@@ -24,19 +41,28 @@ export function createInput(handlers) {
     state.brake = keys.brake || pads.brake;
   }
 
+  function resolveAction(code) {
+    for (const map of maps) {
+      if (map[code]) {
+        return map[code];
+      }
+    }
+    return null;
+  }
+
   function onKeyDown(event) {
     if (event.repeat) {
       return;
     }
-    if (event.code === "KeyP" || event.code === "Escape") {
+    if (enableGlobalKeys && (event.code === "KeyP" || event.code === "Escape")) {
       handlers.togglePause();
       return;
     }
-    if (event.code === "Enter") {
+    if (enableGlobalKeys && event.code === "Enter") {
       handlers.confirm();
       return;
     }
-    const action = KEY_MAP[event.code];
+    const action = resolveAction(event.code);
     if (!action) {
       return;
     }
@@ -46,7 +72,7 @@ export function createInput(handlers) {
   }
 
   function onKeyUp(event) {
-    const action = KEY_MAP[event.code];
+    const action = resolveAction(event.code);
     if (!action) {
       return;
     }
@@ -90,18 +116,20 @@ export function createInput(handlers) {
   window.addEventListener("keyup", onKeyUp);
   window.addEventListener("blur", releaseAll);
 
-  bindPad(document.getElementById("pad-left"), "left");
-  bindPad(document.getElementById("pad-right"), "right");
-  bindPad(document.getElementById("pad-gas"), "accelerate");
-  bindPad(document.getElementById("pad-brake"), "brake");
+  if (enableTouch) {
+    bindPad(document.getElementById("pad-left"), "left");
+    bindPad(document.getElementById("pad-right"), "right");
+    bindPad(document.getElementById("pad-gas"), "accelerate");
+    bindPad(document.getElementById("pad-brake"), "brake");
 
-  window.addEventListener(
-    "touchstart",
-    () => {
-      state.usingTouch = true;
-    },
-    { once: true, passive: true }
-  );
+    window.addEventListener(
+      "touchstart",
+      () => {
+        state.usingTouch = true;
+      },
+      { once: true, passive: true }
+    );
+  }
 
   return { state, releaseAll };
 }
