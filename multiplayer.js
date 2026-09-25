@@ -59,6 +59,7 @@ function createLane(canvas, layout, hud) {
     state.shake = 0;
     state.crashed = false;
     state.active = true;
+    graphics.refresh();
     track.reset();
     resetPlayerCar(player);
     input.releaseAll();
