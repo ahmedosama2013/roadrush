@@ -213,6 +213,9 @@ export function createGraphics({ world }) {
       apply(level);
       writeSavedLevel(level);
     },
+    refresh() {
+      apply(readSavedLevel());
+    },
     scroll
   };
 }
